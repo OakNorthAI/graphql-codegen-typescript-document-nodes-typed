@@ -1,14 +1,14 @@
-import { toPascalCase } from '@graphql-codegen/plugin-helpers';
 import { ClientSideBaseVisitor, DocumentMode, getConfigValue } from '@graphql-codegen/visitor-plugin-common';
+import { pascalCase } from 'pascal-case';
 function nonNull(t) {
     return t != null;
 }
-export class TypedDocumentNodesVisitor extends ClientSideBaseVisitor {
-    constructor(fragments, rawConfig, documents) {
+export class DocumentNodesTypedVisitor extends ClientSideBaseVisitor {
+    constructor(schema, fragments, rawConfig, documents) {
         const additionalConfig = {
             documentNodeImportFrom: getConfigValue(rawConfig.documentNodeImportFrom, 'graphql-typed'),
         };
-        super(fragments, rawConfig, additionalConfig, documents);
+        super(schema, fragments, rawConfig, additionalConfig, documents);
     }
     getImports() {
         const { documentMode, importDocumentNodeExternallyFrom, documentNodeImportFrom } = this.config;
@@ -26,29 +26,26 @@ export class TypedDocumentNodesVisitor extends ClientSideBaseVisitor {
         if (node.name == null || node.name.value == null)
             return null;
         this._collectedOperations.push(node);
-        const operationType = toPascalCase(node.operation);
+        const operationType = pascalCase(node.operation);
         const operationTypeSuffix = this.config.dedupeOperationSuffix && node.name.value.toLowerCase().endsWith(node.operation) ? '' : operationType;
-        const { transformUnderscore, operationResultSuffix, documentVariablePrefix, documentVariableSuffix } = this.config;
+        const { operationResultSuffix, documentVariablePrefix, documentVariableSuffix } = this.config;
         const operationVariablesSuffix = 'Variables';
         const documentVariableName = this.convertName(node, {
             prefix: documentVariablePrefix,
             suffix: documentVariableSuffix,
-            transformUnderscore,
             useTypesPrefix: false,
         });
         const operationResultType = this.convertName(node, {
             suffix: operationTypeSuffix + operationResultSuffix,
-            transformUnderscore,
         });
         const operationVariableTypes = this.convertName(node, {
             suffix: operationTypeSuffix + operationVariablesSuffix,
-            transformUnderscore,
         });
         const documentVariableType = `DocumentNode<${operationResultType}, ${operationVariableTypes}>`;
         const { documentMode, noExport, importDocumentNodeExternallyFrom } = this.config;
         const isExternal = documentMode === DocumentMode.external;
         const modifier = noExport ? '' : 'export';
-        const value = isExternal ? (importDocumentNodeExternallyFrom === 'near-operation-file' ? null : `Operations.${documentVariableName};`) : this._gql(node);
+        const value = isExternal ? (importDocumentNodeExternallyFrom === 'near-operation-file' ? null : `Operations.${documentVariableName}`) : this._gql(node);
         const documentNode = `${modifier} const ${documentVariableName}: ${documentVariableType}${value ? ` = ${value}` : ''};`;
         const additional = this.buildOperation(node, documentVariableName, operationType, operationResultType, operationVariableTypes);
         return [documentNode, additional].filter(nonNull).join('\n\n');

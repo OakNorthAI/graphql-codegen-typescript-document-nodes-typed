@@ -1,8 +1,9 @@
-import { toPascalCase, Types } from '@graphql-codegen/plugin-helpers';
+import { Types } from '@graphql-codegen/plugin-helpers';
 import { ClientSideBasePluginConfig, ClientSideBaseVisitor, DocumentMode, getConfigValue, LoadedFragment } from '@graphql-codegen/visitor-plugin-common';
-import { OperationDefinitionNode } from 'graphql';
+import { OperationDefinitionNode, GraphQLSchema } from 'graphql';
+import { pascalCase } from 'pascal-case';
 
-import { TypedDocumentNodesRawPluginConfig } from './index';
+import { DocumentNodesTypedRawPluginConfig } from './index';
 
 function nonNull<T>(t: T | null): t is T {
   return t != null;
@@ -12,13 +13,13 @@ export interface TypedDocumentNodesPluginConfig extends ClientSideBasePluginConf
   documentNodeImportFrom: string;
 }
 
-export class TypedDocumentNodesVisitor extends ClientSideBaseVisitor<TypedDocumentNodesRawPluginConfig, TypedDocumentNodesPluginConfig> {
-  constructor(fragments: LoadedFragment[], rawConfig: TypedDocumentNodesRawPluginConfig, documents: Types.DocumentFile[]) {
+export class DocumentNodesTypedVisitor extends ClientSideBaseVisitor<DocumentNodesTypedRawPluginConfig, TypedDocumentNodesPluginConfig> {
+  constructor(schema: GraphQLSchema, fragments: LoadedFragment[], rawConfig: DocumentNodesTypedRawPluginConfig, documents: Types.DocumentFile[]) {
     const additionalConfig: Partial<TypedDocumentNodesPluginConfig> = {
       documentNodeImportFrom: getConfigValue(rawConfig.documentNodeImportFrom, 'graphql-typed'),
     };
 
-    super(fragments, rawConfig, additionalConfig, documents);
+    super(schema, fragments, rawConfig, additionalConfig, documents);
   }
 
   public getImports(): string[] {
@@ -43,27 +44,24 @@ export class TypedDocumentNodesVisitor extends ClientSideBaseVisitor<TypedDocume
 
     this._collectedOperations.push(node);
 
-    const operationType = toPascalCase(node.operation);
+    const operationType = pascalCase(node.operation);
     const operationTypeSuffix = this.config.dedupeOperationSuffix && node.name.value.toLowerCase().endsWith(node.operation) ? '' : operationType;
 
-    const { transformUnderscore, operationResultSuffix, documentVariablePrefix, documentVariableSuffix } = this.config;
+    const { operationResultSuffix, documentVariablePrefix, documentVariableSuffix } = this.config;
     const operationVariablesSuffix = 'Variables';
 
     const documentVariableName = this.convertName(node, {
       prefix: documentVariablePrefix,
       suffix: documentVariableSuffix,
-      transformUnderscore,
       useTypesPrefix: false,
     });
 
     const operationResultType = this.convertName(node, {
       suffix: operationTypeSuffix + operationResultSuffix,
-      transformUnderscore,
     });
 
     const operationVariableTypes = this.convertName(node, {
       suffix: operationTypeSuffix + operationVariablesSuffix,
-      transformUnderscore,
     });
 
     const documentVariableType = `DocumentNode<${operationResultType}, ${operationVariableTypes}>`;
@@ -72,7 +70,7 @@ export class TypedDocumentNodesVisitor extends ClientSideBaseVisitor<TypedDocume
 
     const isExternal = documentMode === DocumentMode.external;
     const modifier = noExport ? '' : 'export';
-    const value = isExternal ? (importDocumentNodeExternallyFrom === 'near-operation-file' ? null : `Operations.${documentVariableName};`) : this._gql(node);
+    const value = isExternal ? (importDocumentNodeExternallyFrom === 'near-operation-file' ? null : `Operations.${documentVariableName}`) : this._gql(node);
 
     const documentNode = `${modifier} const ${documentVariableName}: ${documentVariableType}${value ? ` = ${value}` : ''};`;
     const additional = this.buildOperation(node, documentVariableName, operationType, operationResultType, operationVariableTypes);

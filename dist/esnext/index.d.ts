@@ -1,7 +1,7 @@
 import { PluginFunction, PluginValidateFn } from '@graphql-codegen/plugin-helpers';
 import { RawClientSideBasePluginConfig } from '@graphql-codegen/visitor-plugin-common';
-export interface TypedDocumentNodesRawPluginConfig extends RawClientSideBasePluginConfig {
+export interface DocumentNodesTypedRawPluginConfig extends RawClientSideBasePluginConfig {
     documentNodeImportFrom?: string;
 }
-export declare const plugin: PluginFunction<TypedDocumentNodesRawPluginConfig>;
-export declare const validate: PluginValidateFn<TypedDocumentNodesRawPluginConfig>;
+export declare const plugin: PluginFunction<DocumentNodesTypedRawPluginConfig>;
+export declare const validate: PluginValidateFn<DocumentNodesTypedRawPluginConfig>;
