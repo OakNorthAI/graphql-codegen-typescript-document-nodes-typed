@@ -16,8 +16,8 @@
     "build-esnext": "tsc -m esnext --outDir dist/esnext"
   },
   "dependencies": {
-    "@graphql-codegen/plugin-helpers": "^1.12.1",
-    "@graphql-codegen/visitor-plugin-common": "^1.12.1",
+    "@graphql-codegen/plugin-helpers": "1.12.2",
+    "@graphql-codegen/visitor-plugin-common": "1.12.2",
     "pascal-case": "^3.1.1",
     "util": "^0.12.1"
   },
